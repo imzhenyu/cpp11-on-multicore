@@ -45,14 +45,16 @@ public:
             m_sema.signal();    // Release one waiting thread.
     }
 
-    void wait()
+    bool wait(int timeout_milliseconds = -1)
     {
         int oldStatus = m_status.fetch_sub(1, std::memory_order_acquire);
         assert(oldStatus <= 1);
         if (oldStatus < 1)
         {
-            m_sema.wait();
+            return m_sema.wait(timeout_milliseconds);
         }
+        else
+            return true;
     }
 };
 

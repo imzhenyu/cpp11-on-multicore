@@ -43,6 +43,11 @@ public:
     {
         WaitForSingleObject(m_hSema, INFINITE);
     }
+    
+    bool wait(int timeout_milliseconds)
+    {
+        return WAIT_OBJECT_0 == WaitForSingleObject(m_hSema, timeout_milliseconds);
+    }
 
     void signal(int count = 1)
     {
@@ -83,6 +88,13 @@ public:
     {
         semaphore_wait(m_sema);
     }
+ 
+    bool wait(int timeout_milliseconds)
+    {
+        // TODO: timeout
+        wait();
+        return true;
+    }
 
     void signal()
     {
@@ -105,6 +117,7 @@ public:
 //---------------------------------------------------------
 
 #include <semaphore.h>
+#include <time.h>
 
 class Semaphore
 {
@@ -135,6 +148,16 @@ public:
             rc = sem_wait(&m_sema);
         }
         while (rc == -1 && errno == EINTR);
+    }
+ 
+    bool wait(int timeout_milliseconds)
+    {
+        struct timespec ts;
+        clock_gettime(CLOCK_REALTIME, &ts);
+        ts.tv_sec += timeout_milliseconds / 1000;
+        ts.tv_nsec += timeout_milliseconds % 1000 * 1000000;
+        
+        return sem_timedwait(&m_sema, &ts) == 0;
     }
 
     void signal()
@@ -205,6 +228,15 @@ public:
     {
         if (!tryWait())
             waitWithPartialSpinning();
+    }
+
+
+    bool wait(int timeout_milliseconds)
+    {
+        if (!tryWait())
+            return m_sema.wait(timeout_milliseconds);
+        else
+            return true;
     }
 
     void signal(int count = 1)
