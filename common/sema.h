@@ -190,6 +190,7 @@ class LightweightSemaphore
 private:
     std::atomic<int> m_count;
     Semaphore m_sema;
+    int m_spin_count;
 
     void waitWithPartialSpinning()
     {
@@ -197,7 +198,7 @@ private:
         // Is there a better way to set the initial spin count?
         // If we lower it to 1000, testBenaphore becomes 15x slower on my Core i7-5930K Windows PC,
         // as threads start hitting the kernel semaphore.
-        int spin = 10000;
+        int spin = m_spin_count;
         while (spin--)
         {
             oldCount = m_count.load(std::memory_order_relaxed);
@@ -213,7 +214,7 @@ private:
     }
 
 public:
-    LightweightSemaphore(int initialCount = 0) : m_count(initialCount)
+    LightweightSemaphore(int initialCount = 0, int spin_count = 10000) : m_count(initialCount), m_spin_count(spin_count)
     {
         assert(initialCount >= 0);
     }
